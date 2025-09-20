@@ -1,12 +1,11 @@
 import os
 import secrets
-from dataclasses import dataclass
 
 
-@dataclass
 class Env:
-    bot_token: str
-    bot_username: str
+    def __init__(self, bot_token: str, bot_username: str):
+        self.bot_token = bot_token
+        self.bot_username = bot_username
 
 
 def get_env() -> Env:

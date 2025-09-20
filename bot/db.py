@@ -1,5 +1,5 @@
-import aiosqlite
-from typing import Optional, List, Tuple
+import sqlite3
+from typing import Optional, List
 
 
 DB_PATH = "cign.db"
@@ -29,88 +29,88 @@ CREATE TABLE IF NOT EXISTS cooldowns (
 """
 
 
-async def init_db() -> None:
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(CREATE_USERS)
-        await db.execute(CREATE_LOBBIES)
-        await db.execute(CREATE_COOLDOWNS)
-        await db.commit()
+def init_db() -> None:
+    with sqlite3.connect(DB_PATH) as db:
+        db.execute(CREATE_USERS)
+        db.execute(CREATE_LOBBIES)
+        db.execute(CREATE_COOLDOWNS)
+        db.commit()
 
 
-async def upsert_user(user_id: int, lobby_id: Optional[int]) -> None:
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
+def upsert_user(user_id: int, lobby_id: Optional[int]) -> None:
+    with sqlite3.connect(DB_PATH) as db:
+        db.execute(
             "INSERT INTO users(id, lobby_id) VALUES(?, ?)\n"
             "ON CONFLICT(id) DO UPDATE SET lobby_id=excluded.lobby_id",
             (user_id, lobby_id),
         )
-        await db.commit()
+        db.commit()
 
 
-async def get_user_lobby(user_id: int) -> Optional[int]:
-    async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute("SELECT lobby_id FROM users WHERE id=?", (user_id,)) as cur:
-            row = await cur.fetchone()
-            return row[0] if row and row[0] is not None else None
+def get_user_lobby(user_id: int) -> Optional[int]:
+    with sqlite3.connect(DB_PATH) as db:
+        cur = db.execute("SELECT lobby_id FROM users WHERE id=?", (user_id,))
+        row = cur.fetchone()
+        return row[0] if row and row[0] is not None else None
 
 
-async def create_lobby(invite_code: str) -> int:
-    async with aiosqlite.connect(DB_PATH) as db:
-        cur = await db.execute(
+def create_lobby(invite_code: str) -> int:
+    with sqlite3.connect(DB_PATH) as db:
+        cur = db.execute(
             "INSERT INTO lobbies(invite_code) VALUES(?)",
             (invite_code,),
         )
-        await db.commit()
+        db.commit()
         return cur.lastrowid
 
 
-async def get_lobby_by_invite(invite_code: str) -> Optional[int]:
-    async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute(
+def get_lobby_by_invite(invite_code: str) -> Optional[int]:
+    with sqlite3.connect(DB_PATH) as db:
+        cur = db.execute(
             "SELECT id FROM lobbies WHERE invite_code=?",
             (invite_code,),
-        ) as cur:
-            row = await cur.fetchone()
-            return int(row[0]) if row else None
+        )
+        row = cur.fetchone()
+        return int(row[0]) if row else None
 
 
-async def get_invite_by_lobby(lobby_id: int) -> Optional[str]:
-    async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute(
+def get_invite_by_lobby(lobby_id: int) -> Optional[str]:
+    with sqlite3.connect(DB_PATH) as db:
+        cur = db.execute(
             "SELECT invite_code FROM lobbies WHERE id=?",
             (lobby_id,),
-        ) as cur:
-            row = await cur.fetchone()
-            return str(row[0]) if row else None
+        )
+        row = cur.fetchone()
+        return str(row[0]) if row else None
 
 
-async def get_lobby_members(lobby_id: int) -> List[int]:
-    async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute(
+def get_lobby_members(lobby_id: int) -> List[int]:
+    with sqlite3.connect(DB_PATH) as db:
+        cur = db.execute(
             "SELECT id FROM users WHERE lobby_id=?",
             (lobby_id,),
-        ) as cur:
-            rows = await cur.fetchall()
-            return [int(r[0]) for r in rows]
+        )
+        rows = cur.fetchall()
+        return [int(r[0]) for r in rows]
 
 
-async def set_cooldown(lobby_id: int, until_ts: int) -> None:
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
+def set_cooldown(lobby_id: int, until_ts: int) -> None:
+    with sqlite3.connect(DB_PATH) as db:
+        db.execute(
             "INSERT INTO cooldowns(lobby_id, until_ts) VALUES(?, ?)\n"
             "ON CONFLICT(lobby_id) DO UPDATE SET until_ts=excluded.until_ts",
             (lobby_id, until_ts),
         )
-        await db.commit()
+        db.commit()
 
 
-async def get_cooldown(lobby_id: int) -> Optional[int]:
-    async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute(
+def get_cooldown(lobby_id: int) -> Optional[int]:
+    with sqlite3.connect(DB_PATH) as db:
+        cur = db.execute(
             "SELECT until_ts FROM cooldowns WHERE lobby_id=?",
             (lobby_id,),
-        ) as cur:
-            row = await cur.fetchone()
-            return int(row[0]) if row else None
+        )
+        row = cur.fetchone()
+        return int(row[0]) if row else None
 
 
