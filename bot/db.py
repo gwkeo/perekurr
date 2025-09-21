@@ -39,11 +39,17 @@ def init_db() -> None:
 
 def upsert_user(user_id: int, lobby_id: Optional[int]) -> None:
     with sqlite3.connect(DB_PATH) as db:
-        db.execute(
-            "INSERT INTO users(id, lobby_id) VALUES(?, ?)\n"
-            "ON CONFLICT(id) DO UPDATE SET lobby_id=excluded.lobby_id",
-            (user_id, lobby_id),
+        # Сначала пытаемся обновить существующую запись
+        cur = db.execute(
+            "UPDATE users SET lobby_id=? WHERE id=?",
+            (lobby_id, user_id),
         )
+        # Если запись не была обновлена (не существует), создаем новую
+        if cur.rowcount == 0:
+            db.execute(
+                "INSERT INTO users(id, lobby_id) VALUES(?, ?)",
+                (user_id, lobby_id),
+            )
         db.commit()
 
 
@@ -96,11 +102,17 @@ def get_lobby_members(lobby_id: int) -> List[int]:
 
 def set_cooldown(lobby_id: int, until_ts: int) -> None:
     with sqlite3.connect(DB_PATH) as db:
-        db.execute(
-            "INSERT INTO cooldowns(lobby_id, until_ts) VALUES(?, ?)\n"
-            "ON CONFLICT(lobby_id) DO UPDATE SET until_ts=excluded.until_ts",
-            (lobby_id, until_ts),
+        # Сначала пытаемся обновить существующую запись
+        cur = db.execute(
+            "UPDATE cooldowns SET until_ts=? WHERE lobby_id=?",
+            (until_ts, lobby_id),
         )
+        # Если запись не была обновлена (не существует), создаем новую
+        if cur.rowcount == 0:
+            db.execute(
+                "INSERT INTO cooldowns(lobby_id, until_ts) VALUES(?, ?)",
+                (lobby_id, until_ts),
+            )
         db.commit()
 
 
